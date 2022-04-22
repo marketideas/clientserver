@@ -12,7 +12,7 @@ S_CLASS::~S_CLASS()
 {
     if (server_fd>=0)
         close(server_fd);
-    server_fd=0;
+    server_fd=-1;
     remove_clients(true);  //terminate and free all remaining clients
 }
 
@@ -187,7 +187,7 @@ int S_CLASS::do_listen()
                     else
                     {
                         remove_clients(false);  //false is only remove completed threads
-                        usleep(100); // so we don't waste CPU cycles
+                        usleep(1000*10); // so we don't waste CPU cycles
                     }
                 }
             }

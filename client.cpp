@@ -198,6 +198,7 @@ void C_CLASS::run()  // this is the method run in the thread
                     {
                         parse_command(input_buff);
                         input_len=0;
+                        input_buff[0]=0x00;
                         // FIXUP - do some rate limiting here to see if they are sending messages too quickly
                         // denial of service, and close the connection.
                     }
