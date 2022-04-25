@@ -30,35 +30,27 @@ void S_CLASS::sendMessageToRoom(std::string roomname, std::string username, std:
     std::string room=uppercase(roomname);
     std::string croom;
 
-    msgMutex.lock();
-    try
-    {
-        //printf("message: room: |%s| user: %s msg:|%s|\n",roomname.c_str(),username.c_str(),msg.c_str());
+    std::lock_guard<std::recursive_mutex> lk(clientsMutex);
+    //printf("message: room: |%s| user: %s msg:|%s|\n",roomname.c_str(),username.c_str(),msg.c_str());
 
-        list_t::iterator iter;
-        iter=clients.begin();
-        while(iter!=clients.end())
+    list_t::iterator iter;
+    iter=clients.begin();
+    while(iter!=clients.end())
+    {
+        C_CLASS *client=*iter;
+        if (client!=NULL)
         {
-            C_CLASS *client=*iter;
-            if (client!=NULL)
+            croom=uppercase(client->getRoom());
+            if ((croom==room) && (room!=""))
             {
-                croom=uppercase(client->getRoom());
-                if ((croom==room) && (room!=""))
-                {
-                    if (appendUser)
-                        client->clientSend(username+": "+msg);
-                    else
-                        client->clientSend(msg);
-                }
+                if (appendUser)
+                    client->clientSend(username+": "+msg);
+                else
+                    client->clientSend(msg);
             }
-            iter++;
         }
+        iter++;
     }
-    catch(...)
-    {
-    }
-    msgMutex.unlock();
-
 }
 
 void S_CLASS::setSignal(int signo)  // WARN: called from signal handler not main thread.
@@ -85,6 +77,8 @@ void S_CLASS::remove_clients(bool force_all)
     // with erasing during an iterator.  Slower, yes, but safter depending
     // on differences between C++ versions, and speed does not matter here.
 
+    std::lock_guard<std::recursive_mutex> lk(clientsMutex);
+
     list_t::iterator iter,current;
     C_CLASS *client_item;
 
@@ -108,6 +102,7 @@ void S_CLASS::remove_clients(bool force_all)
     {
         return;
     }
+
     iter=clients.begin();
     while(iter!=clients.end())
     {
@@ -130,7 +125,6 @@ void S_CLASS::remove_clients(bool force_all)
         }
     }
 }
-
 int S_CLASS::do_listen()
 {
     int result=-1;
@@ -163,6 +157,8 @@ int S_CLASS::do_listen()
                     clientfd=accept(server_fd,(SA*)&client,&clen);
                     if (clientfd>=0)
                     {
+                        std::lock_guard<std::recursive_mutex> lk(clientsMutex);
+
                         // start the client thread
                         // we will handle the inability to allocate a new client instance ourselves
                         C_CLASS *cthread=new (std::nothrow)  C_CLASS(*this);

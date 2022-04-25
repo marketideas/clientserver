@@ -125,7 +125,7 @@ private:
     int server_fd;
     bool shutdown;
     uint16_t listen_port;
-    std::mutex msgMutex;
+    std::recursive_mutex clientsMutex;
 
 protected:
     typedef std::list<C_CLASS *> list_t;
